@@ -30,7 +30,7 @@ char *argv[];
 {
   int32 hdf_fp, sd_id;		/* HDF file pointer & scientific data ID */
 
-  struct TestSet testdata;   /* TestSet structure defined in structure.h file */
+  struct MAG_data_1sec testdata;   /* TestSet/SIS_data_1hr structure defined in structure.h file */
 
   int ii,jj,kk,cc=0,retval;
 /*------------------------------------------------------------------*/
@@ -64,16 +64,16 @@ char *argv[];
 
    /* Read data out of HDF file using perl generated code */
   while((retval= read_test_func(&testdata,ii))!=-1) {
-	  printf("sc clock readout = %d\n", testdata.sctime_readout);
-	  printf("QAC = %d\n", testdata.QAC);
-	  printf("test1[%d] = %d\ntest_array:\n", cc, testdata.test1[cc++]);
-      for (jj=0; jj < NUM1; jj++){
-        for (kk=0; kk < NUM2; kk++){
-	  printf("  %d ", testdata.test_array[jj][kk]);
-        }
-        printf("\n");
-      }
-      printf("\n");
+	  printf("%d %d %d %f\n", testdata.year, testdata.hr, testdata.min, testdata.sec);
+	  //printf("QAC = %d\n", testdata.QAC);
+	  //printf("test1[%d] = %d\ntest_array:\n", cc, testdata.test1[cc++]);
+      //for (jj=0; jj < NUM1; jj++){
+      //  for (kk=0; kk < NUM2; kk++){
+	  //printf("  %d ", testdata.test_array[jj][kk]);
+      //  }
+      //  printf("\n");
+      //}
+      //printf("\n");
       ii++;
   }
  /*--- all done, close HDF file ---*/

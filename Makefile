@@ -1,6 +1,6 @@
 #!/bin/bash
 CC = gcc        # gnu c compiler
-CFLAGS=
+CFLAGS= #-g for debugging
 
 # You will need to set this on your system
 HDFHOME=${HOME}/local
