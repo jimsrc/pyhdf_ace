@@ -10,6 +10,7 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Free
 #from cython.Utility.MemoryView import PyMem_New, PyMeM_Del # why doesn't work??
 from cython.operator cimport dereference as deref
 from libc.math cimport sqrt, sin, cos
+#from libc cimport printf
 
 # agregamos la clase wrapper
 include "array_wrapper.pyx"
@@ -25,9 +26,22 @@ cdef init_out(Output[StepperBS[rhs]] *op):
 
 
 cpdef int test_myhdf(const char *fname):
-    cdef int32 hdf_fp
-    cdef int32 sd_id
+    cdef:
+        int32 hdf_fp
+        int32 sd_id
+        int retval
+        int off=0       # initial offset
+
     open_hdf(fname, &hdf_fp, &sd_id)
+    cdef MAG_data_1sec data # C-struct of data
+
+    ok = 1
+    while(ok!=-1):
+        retval= read_test_func(&data,off)
+        print "%d %d %d %f\n" %(data.year, data.hr, data.min, data.sec)
+        #printf("%d %d %d %f\n", data.year, data.hr, data.min, data.sec);
+        off += 1
+
     close_hdf(hdf_fp, sd_id)
     return 0
 

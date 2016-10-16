@@ -13,7 +13,7 @@ ctypedef unsigned int   uint32
 ctypedef float          float32
 ctypedef double         float64
 cdef extern from "structure.h":
-    ctypedef struct MAG_data_1sec:
+    cdef struct MAG_data_1sec:
         int32   year;   
         int32   day;        
         int32   hr;     
@@ -21,6 +21,14 @@ cdef extern from "structure.h":
         float32 sec;        
         float64 fp_year;
         float64 fp_doy; 
+
+        float32 Bmag;
+        float32 Delta;
+        float32 Lambda;
+
+        float32 Bgse_x;
+        float32 Bgse_y;
+        float32 Bgse_z;
 
 cdef extern from "hdf_test.h":
     int32 read_test_func(MAG_data_1sec *MAG_data_1sec_struc, int32 recnum_rd);
