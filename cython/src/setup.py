@@ -9,12 +9,8 @@ ext = Extension(
     name = modname,
     sources=[
         "%s.pyx" % modname, 
-        "defs_turb.cc", 
-        "funcs.cc",
-        "general.cc", # declara a 'scl'
-        "odeintt.cc", 
-        "stepperbs.cc",
         'hdf_test.c',
+        'read_hdf.c',
     ],
     language="c++",
     include_dirs=[
@@ -27,6 +23,9 @@ ext = Extension(
     ],
     library_dirs=[
     '{HOME}/local/lib'.format(**os.environ),
+    ],
+    libraries=[
+    'mfhdf', 'df', 'jpeg', 'z', 'sz', 'nsl',
     ],
     #--- for debugging with 'gdb python'
     #extra_compile_args = ['-g'],

@@ -1,4 +1,4 @@
-# distutils: language = c++
+# distutils: language = c
 # Author: Jimmy J.
 #from libcpp.string cimport string
 
