@@ -24,8 +24,12 @@ cdef init_out(Output[StepperBS[rhs]] *op):
 
 
 
-#def c_gamma(double v):
-#    return calc_gamma(v)
+cpdef int test_myhdf(const char *fname):
+    cdef int32 hdf_fp
+    cdef int32 sd_id
+    open_hdf(fname, &hdf_fp, &sd_id)
+    close_hdf(hdf_fp, sd_id)
+    return 0
 
 
 #cdef void calc_Rlarmor(Doub Ek, Doub Bo, Doub *Rl):
