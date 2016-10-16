@@ -1,0 +1,6 @@
+#
+*.[xo]
+*.so
+rd_test
+wr_test
+hdf_test.c

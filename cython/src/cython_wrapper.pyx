@@ -29,19 +29,22 @@ cpdef int test_myhdf(const char *fname):
     cdef:
         int32 hdf_fp
         int32 sd_id
-        int retval
+        int retval=1
         int off=0       # initial offset
+        MAG_data_1sec data # C-struct of data
 
+    # point to file on disk
     open_hdf(fname, &hdf_fp, &sd_id)
-    cdef MAG_data_1sec data # C-struct of data
 
-    ok = 1
-    while(ok!=-1):
-        retval= read_test_func(&data,off)
-        print "%d %d %d %f\n" %(data.year, data.hr, data.min, data.sec)
+    # read data
+    while(retval!=-1):
+        retval = read_test_func(&data,off)
+        print "%d %d %d %f\n" %(data.year, data.fp_doy, data.hr, data.sec)
         #printf("%d %d %d %f\n", data.year, data.hr, data.min, data.sec);
         off += 1
 
+    print " ---> finished reading data!\n"
+    # close file
     close_hdf(hdf_fp, sd_id)
     return 0
 
