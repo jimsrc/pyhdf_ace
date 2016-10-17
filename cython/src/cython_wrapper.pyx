@@ -13,7 +13,7 @@ from libc.math cimport sqrt, sin, cos
 #from libc cimport printf
 
 # agregamos la clase wrapper
-include "array_wrapper.pyx"
+#include "array_wrapper.pyx"
 
 
 """ why this doesn't work??
@@ -27,51 +27,73 @@ cdef init_out(Output[StepperBS[rhs]] *op):
 cdef class mag_l2:
     cdef int32          hdf_fp
     cdef int32          sd_id
-    #cdef int            retval = 1
-    #cdef int            off    = 1
-    cdef MAG_data_1sec  data
-    pdict = {}
+    cdef MAG_data_1sec  data        # read buffer
+    findx = {} # fname list && associations
+    cdef int32          nf # number of input filenames
 
-    def __cinit__(self, fname_inp):
-        open_hdf(fname_inp, &self.hdf_fp, &self.sd_id)
+    def __cinit__(self, fname_inps):
+        """
+        fname_inps: list of input filenames
+        NOTE:
+        * we assume `fnames_inps` is listed in chronological way.
+        """
+        cdef int32 nf, i
+        cdef char *fname_inp
+        self.nf = len(fname_inps)
+        # initialize pointers to all files
+        for i in range(self.nf): 
+            fname_inp  = fname_inps[i]
+            #open_hdf(fname_inp, &self.hdf_fp[i], &self.sd_id[i])
+            self.findx[i] = {'fname_inp':fname_inp, 'ind':[None,None]}
 
     def indexes_for_period(self, ini, end):
         """
         Returns indexes (file offsets) that englobe the 
         data corresponding to the time period `ìni`-`end`.
         NOTE:
-        `ini` and `end` must be in `ACEepoch` units
+        * `ini` and `end` must be in `ACEepoch` units
+        * we assume `fnames_inps` is listed in chronological way.
         """
         assert end>ini, " Not consistent!, (ini,end)=(%f, %f)"%(ini,end)
-        cdef int retval = 1
-        cdef int off    = 0 # start at first record
-        # search flags
+        # search flags (indexes "not found" by default)
         cdef bint NotFound_Ini=1
         cdef bint NotFound_End=1
+        cdef int i, retval, off
 
-        # read data
-        while(retval!=-1):
-            retval = read_test_func(&self.data, off)
-            if (self.data.ACEepoch>=ini) & NotFound_Ini:
-                index_ini = off
-                NotFound_Ini = 0 # say i found it!
+        for i in range(self.nf):
+            retval = 1 # read status flag
+            off    = 0 # start at first record
+            # open file
+            open_hdf(self.findx[i]['fname_inp'], &self.hdf_fp, &self.sd_id)
+            # read file
+            while(retval!=-1):
+                retval = read_test_func(&self.data, off)
+                if NotFound_Ini & (self.data.ACEepoch>=ini):
+                    self.findx[i]['ind'] = [off, None]
+                    NotFound_Ini = 0 # say i found it!
 
-            if (self.data.ACEepoch>=end) & NotFound_End:
-                index_end = off
-                NotFound_End = 0 # say i found it!
+                if NotFound_End & (self.data.ACEepoch>=end):
+                    self.findx[i]['ind'] = [None, off]
+                    NotFound_End = 0 # say i found it!
+                    break # we finished!
 
-            off += 1
+                off += 1
+            # close file
+            close_hdf(self.hdf_fp, self.sd_id)
 
-        # found nothing in this file
-        if NotFound_Ini & NotFound_End:
-            return -1, -1
+        # found nothing in these files
+        if NotFound_Ini | NotFound_End:
+            print " ---> Didn't match both borders!\n"
+            return 0
+        else:
+            return 1    # all ok.
     
-        # check that we found both borders && that the index
-        # values are consistent!
-        assert (~NotFound_Ini & ~NotFound_End) & (index_end>index_ini), \
-            " Not consistent indexes!: %f, %f\n"%(index_ini,index_end)
 
-        return index_ini, index_end
+    """
+    def __dealloc__(self):
+        free(self.hdf_fp)
+        free(self.sd_id)
+    """
 
 
 
