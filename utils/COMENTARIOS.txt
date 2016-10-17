@@ -1,0 +1,2 @@
+list of Bartels from:
+http://www.srl.caltech.edu/ACE/ASC/DATA/bartels/bartels.txt
