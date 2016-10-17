@@ -21,6 +21,7 @@ cdef extern from "structure.h":
         float32 sec;        
         float64 fp_year;
         float64 fp_doy; 
+        float64 ACEepoch; # UT time in sec since 1/1/96 
 
         float32 Bmag;
         float32 Delta;

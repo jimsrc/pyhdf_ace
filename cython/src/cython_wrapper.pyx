@@ -24,6 +24,56 @@ cdef init_out(Output[StepperBS[rhs]] *op):
 """
 
 
+cdef class mag_l2:
+    cdef int32          hdf_fp
+    cdef int32          sd_id
+    #cdef int            retval = 1
+    #cdef int            off    = 1
+    cdef MAG_data_1sec  data
+    pdict = {}
+
+    def __cinit__(self, fname_inp):
+        open_hdf(fname_inp, &self.hdf_fp, &self.sd_id)
+
+    def indexes_for_period(self, ini, end):
+        """
+        Returns indexes (file offsets) that englobe the 
+        data corresponding to the time period `ìni`-`end`.
+        NOTE:
+        `ini` and `end` must be in `ACEepoch` units
+        """
+        assert end>ini, " Not consistent!, (ini,end)=(%f, %f)"%(ini,end)
+        cdef int retval = 1
+        cdef int off    = 0 # start at first record
+        # search flags
+        cdef bint NotFound_Ini=1
+        cdef bint NotFound_End=1
+
+        # read data
+        while(retval!=-1):
+            retval = read_test_func(&self.data, off)
+            if (self.data.ACEepoch>=ini) & NotFound_Ini:
+                index_ini = off
+                NotFound_Ini = 0 # say i found it!
+
+            if (self.data.ACEepoch>=end) & NotFound_End:
+                index_end = off
+                NotFound_End = 0 # say i found it!
+
+            off += 1
+
+        # found nothing in this file
+        if NotFound_Ini & NotFound_End:
+            return -1, -1
+    
+        # check that we found both borders && that the index
+        # values are consistent!
+        assert (~NotFound_Ini & ~NotFound_End) & (index_end>index_ini), \
+            " Not consistent indexes!: %f, %f\n"%(index_ini,index_end)
+
+        return index_ini, index_end
+
+
 
 cpdef int test_myhdf(const char *fname):
     cdef:
