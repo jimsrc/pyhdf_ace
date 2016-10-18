@@ -40,8 +40,8 @@ ind = m.indexes_for_period(ini, end)
 for i in range(m.nf):
     print m.findx[i]['ind']
 
-Bmag = m.return_var('ACEepoch')
-print " Bmag.size ", len(Bmag)
+var = m.return_var()
+print " Bmag.size ", len(var)
 print " tsize ", m.tsize
 
 

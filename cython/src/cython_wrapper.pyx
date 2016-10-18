@@ -86,7 +86,7 @@ cdef class mag_l2(object):
                     self.findx[i]['ind'][0] = off
                     NotFound_Ini = 0 # say i found it!
 
-                if ~NotFound_Ini:
+                if not(NotFound_Ini):
                     self.tsize += 1
 
                 if NotFound_End & (self.data.ACEepoch>=end):
@@ -110,15 +110,10 @@ cdef class mag_l2(object):
         else:
             return 1    # all ok.
    
-    def return_var(self, name):
+    def return_var(self,):
         cdef int off, off_ini, off_end, off_size
         cdef int retval, i
         var = []
-        dname = {
-        'Bmag':self.data.Bmag, 
-        'Bgse_x':self.data.Bgse_x, 
-        'ACEepoch': self.data.ACEepoch,
-        }
         #--- iterate over files
         for i in range(self.nf):
             retval = 1 # read status flag
@@ -133,7 +128,8 @@ cdef class mag_l2(object):
             # read file
             for off in range(off_ini, off_end+1):
                 retval = read_test_func(&self.data, off)
-                var.append(dname[name])
+                #var.append(deref(dname[name]))
+                var.append(self.data.ACEepoch)
 
         return var
 
