@@ -30,6 +30,7 @@ cdef class mag_l2(object):
     cdef MAG_data_1sec  data        # read buffer
     #--- available in Python space
     cdef public int32   nf # number of input filenames
+    cdef public int32   tsize # size of selected time domain
     findx = {} # fname list && associations
 
     def __cinit__(self, fname_inps):
@@ -71,7 +72,8 @@ cdef class mag_l2(object):
         else:
             close_hdf(self.hdf_fp, self.sd_id)
             raise SystemExit(' bad data!')
-
+    
+        self.tsize = 0
         for i in range(self.nf):
             retval = 1 # read status flag
             off    = 0 # start at first record
@@ -83,6 +85,9 @@ cdef class mag_l2(object):
                 if NotFound_Ini & (self.data.ACEepoch>=ini):
                     self.findx[i]['ind'][0] = off
                     NotFound_Ini = 0 # say i found it!
+
+                if ~NotFound_Ini:
+                    self.tsize += 1
 
                 if NotFound_End & (self.data.ACEepoch>=end):
                     self.findx[i]['ind'][1] = off
@@ -104,7 +109,33 @@ cdef class mag_l2(object):
             return 0
         else:
             return 1    # all ok.
-    
+   
+    def return_var(self, name):
+        cdef int off, off_ini, off_end, off_size
+        cdef int retval, i
+        var = []
+        dname = {
+        'Bmag':self.data.Bmag, 
+        'Bgse_x':self.data.Bgse_x, 
+        'ACEepoch': self.data.ACEepoch,
+        }
+        #--- iterate over files
+        for i in range(self.nf):
+            retval = 1 # read status flag
+            # open file
+            open_hdf(self.findx[i]['fname_inp'], &self.hdf_fp, &self.sd_id)
+            # get first offset
+            off_ini  = self.findx[i]['ind'][0] if self.findx[i]['ind'][0] is not None else 0
+            # get max offset
+            off_size = get_maxrec() # number of records for this file
+            off_end  = self.findx[i]['ind'][1] if self.findx[i]['ind'][1] is not None else (off_size-1)
+            print " --> reading: %d,  %d/%d" % (off_ini, off_end, off_size-1)
+            # read file
+            for off in range(off_ini, off_end+1):
+                retval = read_test_func(&self.data, off)
+                var.append(dname[name])
+
+        return var
 
     """
     def __dealloc__(self):

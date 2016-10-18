@@ -33,6 +33,7 @@ cdef extern from "structure.h":
 
 cdef extern from "hdf_test.h":
     int32 read_test_func(MAG_data_1sec *MAG_data_1sec_struc, int32 recnum_rd);
+    int32 get_maxrec(); # number of records for the present file
     #int32 init_acc_test_func(int32 hdf_fp, int32 sd_id, char *access_mode);
     #void close_rd_test_func();
 

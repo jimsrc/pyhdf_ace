@@ -33,12 +33,16 @@ end = ini + 5.*86400. # ten more days
 ace_o = datetime(1996,1,1)  # start of ACE epoch
 # seconds in ACE epoch (secs since 1/1/96)
 ini   = (datetime(2016,5,26)-ace_o).total_seconds()
-end   = (datetime(2016,8,14)-ace_o).total_seconds()
+end   = (datetime(2016,8,12)-ace_o).total_seconds()
 
 ind = m.indexes_for_period(ini, end)
 
 for i in range(m.nf):
     print m.findx[i]['ind']
+
+Bmag = m.return_var('ACEepoch')
+print " Bmag.size ", len(Bmag)
+print " tsize ", m.tsize
 
 
 #EOF

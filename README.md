@@ -13,3 +13,13 @@ I just made the Cython interface.
 
 - ACE data files have HDF version 4.1r2 [link](http://www.srl.caltech.edu/ACE/ASC/hdf.html), and `pyhdf` and `python-hdf` libraries don't seem to be friendly with it :\
 
+- It's been test with [HDF4 v4.2.12](ftp://ftp.hdfgroup.org/HDF/HDF_Current/src/hdf-4.2.12.tar.bz2). 
+  In some platforms, it may be necessary to build hdf4 with `fPIC`; i.e.:
+
+```bash
+$ CFLAGS=-fPIC ./configure --with-zlib=$HOME/local --with-jpeg=$HOME/local --with-szlib=$HOME/local --prefix=$HOME/local
+```
+
+  For more details, see [here](ftp://ftp.hdfgroup.org/HDF/releases/HDF4.2.12/src/unpacked/release_notes/INSTALL) and [here](http://lists.osgeo.org/pipermail/gdal-dev/2016-April/044125.html).
+
+<!--- EOF -->

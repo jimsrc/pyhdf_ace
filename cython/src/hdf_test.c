@@ -264,6 +264,14 @@ void unpack_test_func();
   return(retval);
 }
 
+
+/*--- get number of records ---*/
+int32 get_maxrec(void){
+  int32 maxrec;
+  VSinquire(vdata_id_test_func, &maxrec, NULL, NULL, NULL, NULL);
+  return maxrec;
+}
+
 /*----   close read function    ----*/
 
 void close_rd_test_func()

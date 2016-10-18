@@ -22,5 +22,6 @@ void print_test_func_error(int8 *mess);
 void pack_test_func(uint8 *data, struct MAG_data_1sec *MAG_data_1sec_ptr);
 void unpack_test_func(uint8 *data, struct MAG_data_1sec *MAG_data_1sec_ptr);
 int32 wr_Vgrp_desc_test_func(char *wr_strval);
+int32 get_maxrec(void);
 
 #endif //HDFGEN_H
