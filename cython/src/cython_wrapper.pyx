@@ -24,12 +24,13 @@ cdef init_out(Output[StepperBS[rhs]] *op):
 """
 
 
-cdef class mag_l2:
+cdef class mag_l2(object):
     cdef int32          hdf_fp
     cdef int32          sd_id
     cdef MAG_data_1sec  data        # read buffer
+    #--- available in Python space
+    cdef public int32   nf # number of input filenames
     findx = {} # fname list && associations
-    cdef int32          nf # number of input filenames
 
     def __cinit__(self, fname_inps):
         """
@@ -37,7 +38,7 @@ cdef class mag_l2:
         NOTE:
         * we assume `fnames_inps` is listed in chronological way.
         """
-        cdef int32 nf, i
+        cdef int32 i
         cdef char *fname_inp
         self.nf = len(fname_inps)
         # initialize pointers to all files
@@ -60,6 +61,17 @@ cdef class mag_l2:
         cdef bint NotFound_End=1
         cdef int i, retval, off
 
+        # check
+        # TODO: test if ignoring this block, we gain performance? (the
+        #       executable size IS different!)
+        open_hdf(self.findx[0]['fname_inp'], &self.hdf_fp, &self.sd_id)
+        if read_test_func(&self.data, 0)!=-1:
+            assert self.data.ACEepoch<ini, " bad data selection!"
+            close_hdf(self.hdf_fp, self.sd_id)
+        else:
+            close_hdf(self.hdf_fp, self.sd_id)
+            raise SystemExit(' bad data!')
+
         for i in range(self.nf):
             retval = 1 # read status flag
             off    = 0 # start at first record
@@ -69,12 +81,13 @@ cdef class mag_l2:
             while(retval!=-1):
                 retval = read_test_func(&self.data, off)
                 if NotFound_Ini & (self.data.ACEepoch>=ini):
-                    self.findx[i]['ind'] = [off, None]
+                    self.findx[i]['ind'][0] = off
                     NotFound_Ini = 0 # say i found it!
 
                 if NotFound_End & (self.data.ACEepoch>=end):
-                    self.findx[i]['ind'] = [None, off]
+                    self.findx[i]['ind'][1] = off
                     NotFound_End = 0 # say i found it!
+                    #---
                     break # we finished!
 
                 off += 1
@@ -83,6 +96,10 @@ cdef class mag_l2:
 
         # found nothing in these files
         if NotFound_Ini | NotFound_End:
+            """
+            Fail! But well keep the 'ind' members for
+            further analyze, and return 0
+            """
             print " ---> Didn't match both borders!\n"
             return 0
         else:

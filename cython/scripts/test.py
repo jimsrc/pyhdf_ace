@@ -23,7 +23,7 @@ def fnm_gen(i):
 
 #ok = cw.test_myhdf(fnm)
 fnm_ls = [fnm_gen(i) for i in range(2494,2497)]
-import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
 
 m = cw.mag_l2(fnm_ls)
 # seconds from 1/1/96 (ACE epoch)
@@ -32,10 +32,13 @@ end = ini + 5.*86400. # ten more days
 
 ace_o = datetime(1996,1,1)  # start of ACE epoch
 # seconds in ACE epoch (secs since 1/1/96)
-ini   = (datetime(2016,5,24)-ace_o).total_seconds()
-end   = (ini+timedelta(days=10)-ace_o).total_seconds()
+ini   = (datetime(2016,5,26)-ace_o).total_seconds()
+end   = (datetime(2016,8,14)-ace_o).total_seconds()
 
 ind = m.indexes_for_period(ini, end)
+
+for i in range(m.nf):
+    print m.findx[i]['ind']
 
 
 #EOF

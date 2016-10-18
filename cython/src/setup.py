@@ -34,7 +34,7 @@ ext = Extension(
 
 setup(
     name = modname,
-    ext_modules = cythonize(ext)
+    ext_modules = cythonize(ext,)# gdb_debug=True) # using `cygdb`
 )
 
 #EOF
