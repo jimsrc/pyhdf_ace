@@ -136,8 +136,30 @@ cdef class mag_l2(object):
             # read file
             for off in range(off_ini, off_end+1):
                 retval = read_test_func(&self.data, off)
-                #var.append(deref(dname[name]))
-                #var.append(self.data.ACEepoch)
+                var.append(deref(_ptr))
+
+        return var
+
+    def return_ACEepoch(self):
+        cdef int off, off_ini, off_end, off_size
+        cdef int retval, i
+        cdef float64 *_ptr
+        _ptr = &self.data.ACEepoch
+        var = []
+        #--- iterate over files
+        for i in range(self.nf):
+            retval = 1 # read status flag
+            # open file
+            open_hdf(self.findx[i]['fname_inp'], &self.hdf_fp, &self.sd_id)
+            # get first offset
+            off_ini  = self.findx[i]['ind'][0] if self.findx[i]['ind'][0] is not None else 0
+            # get max offset
+            off_size = get_maxrec() # number of records for this file
+            off_end  = self.findx[i]['ind'][1] if self.findx[i]['ind'][1] is not None else (off_size-1)
+            print " --> reading: %d,  %d/%d" % (off_ini, off_end, off_size-1)
+            # read file
+            for off in range(off_ini, off_end+1):
+                retval = read_test_func(&self.data, off)
                 var.append(deref(_ptr))
 
         return var
