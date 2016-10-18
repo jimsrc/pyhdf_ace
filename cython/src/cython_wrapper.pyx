@@ -110,9 +110,17 @@ cdef class mag_l2(object):
         else:
             return 1    # all ok.
    
-    def return_var(self,):
+    def return_var(self, vname):
         cdef int off, off_ini, off_end, off_size
         cdef int retval, i
+        cdef float32 *_ptr
+        #_ptr = &self.data.Bmag
+        if   vname=='Bmag'     : _ptr = &self.data.Bmag
+        elif vname=='Bgse_x'   : _ptr = &self.data.Bgse_x
+        elif vname=='Bgse_y'   : _ptr = &self.data.Bgse_y
+        elif vname=='Bgse_z'   : _ptr = &self.data.Bgse_z
+        #elif vname=='ACEepoch' : _ptr = &self.data.ACEepoch
+        else: raise SystemExit(' Not implemented for: %s'%vname)
         var = []
         #--- iterate over files
         for i in range(self.nf):
@@ -129,7 +137,8 @@ cdef class mag_l2(object):
             for off in range(off_ini, off_end+1):
                 retval = read_test_func(&self.data, off)
                 #var.append(deref(dname[name]))
-                var.append(self.data.ACEepoch)
+                #var.append(self.data.ACEepoch)
+                var.append(deref(_ptr))
 
         return var
 
