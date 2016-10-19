@@ -62,7 +62,7 @@ cdef class mag_l2(object):
         cdef bint NotFound_End=1
         cdef int i, retval, off, off_size
 
-        # check
+        #--- check
         # TODO: test if ignoring this block, we gain performance? (the
         #       executable size IS different!)
         open_hdf(self.findx[0]['fname_inp'], &self.hdf_fp, &self.sd_id)
@@ -72,7 +72,7 @@ cdef class mag_l2(object):
         else:
             close_hdf(self.hdf_fp, self.sd_id)
             raise SystemExit(' bad data!')
-        off_ = 0 
+
         self.tsize = 0
         for i in range(self.nf):
             retval = 1 # read status flag
@@ -82,8 +82,9 @@ cdef class mag_l2(object):
             off_size = get_maxrec() # number of records for this file
             self.findx[i]['size'] = off_size
             # read file
+            retval = read_test_func(&self.data, 0)
             while (retval!=-1) & NotFound_End:
-                retval = read_test_func(&self.data, off)
+
                 if NotFound_Ini & (self.data.ACEepoch>=ini):
                     self.findx[i]['ind'][0] = off
                     NotFound_Ini = 0 # say i found it!
@@ -94,16 +95,16 @@ cdef class mag_l2(object):
                 if (~NotFound_Ini) & NotFound_End: 
                     self.tsize += 1
 
-                if NotFound_End & (self.data.ACEepoch>=end):
+                if (NotFound_End & (self.data.ACEepoch>=end)) & (retval!=-1):
                     self.findx[i]['ind'][1] = off
                     NotFound_End = 0 # say i found it!
-                    break # we finished!
+                    #break # we finished!
 
                 off += 1
+                retval = read_test_func(&self.data, off)
 
             # close file
             close_hdf(self.hdf_fp, self.sd_id)
-            
 
         # found nothing in these files
         if NotFound_Ini | NotFound_End:
@@ -121,17 +122,27 @@ cdef class mag_l2(object):
         cdef int retval, i
         cdef float32 *_ptr
         #_ptr = &self.data.Bmag
-        if   vname=='Bmag'     : _ptr = &self.data.Bmag
-        elif vname=='Bgse_x'   : _ptr = &self.data.Bgse_x
-        elif vname=='Bgse_y'   : _ptr = &self.data.Bgse_y
-        elif vname=='Bgse_z'   : _ptr = &self.data.Bgse_z
-        #elif vname=='ACEepoch' : _ptr = &self.data.ACEepoch
-        else: raise SystemExit(' Not implemented for: %s'%vname)
+
+        """
+        select only the files that we need to read from.
+        """
+        cdef bint initialized, finalized
+        cdef i_ini, i_end
+        initialized, finalized = False, False
+        for i in range(self.nf):
+            if self.findx[i]['ind'][0] is not None and not(initialized):
+                i_ini = i
+                initialized = True
+
+            if initialized and self.findx[i]['ind'][1] is not None:
+                i_end = i
+                finalized = True
+                break
+
         var = []
         #--- iterate over files
-        for i in range(self.nf):
-            if self.findx[i]['ind'][0] is None and self.findx[i]['ind'][1] is None:
-                continue # next file
+        for i in range(i_ini, i_end+1):
+            print " ind(%d): %r" % (i, self.findx[i]['ind'])
             retval = 1 # read status flag
             # open file
             open_hdf(self.findx[i]['fname_inp'], &self.hdf_fp, &self.sd_id)
@@ -140,43 +151,18 @@ cdef class mag_l2(object):
             # get max offset
             off_size = get_maxrec() # number of records for this file
             off_end  = self.findx[i]['ind'][1] if self.findx[i]['ind'][1] is not None else (off_size-1)
-            print " --> reading: %d,  %d/%d" % (off_ini, off_end, off_size-1)
             # read file
             for off in range(off_ini, off_end+1):
                 retval = read_test_func(&self.data, off)
-                var.append(deref(_ptr))
+                if   vname=='Bmag'     : var.append(self.data.Bmag)# _ptr = &self.data.Bmag
+                elif vname=='Bgse_x'   : var.append(self.data.Bgse_x)
+                elif vname=='Bgse_y'   : var.append(self.data.Bgse_y)
+                elif vname=='Bgse_z'   : var.append(self.data.Bgse_z)
+                elif vname=='ACEepoch' : var.append(self.data.ACEepoch)
+                else: return -1
 
             # close file
             close_hdf(self.hdf_fp, self.sd_id)
-        return var
-
-    def return_ACEepoch(self):
-        cdef int off, off_ini, off_end, off_size
-        cdef int retval, i
-        cdef float64 *_ptr
-        _ptr = &self.data.ACEepoch
-        var = []
-        #--- iterate over files
-        for i in range(self.nf):
-            #--- is this file inside our period of interest?
-            if self.findx[i]['ind'][0] is None and self.findx[i]['ind'][1] is None:
-                continue # next file
-            retval = 1 # read status flag
-            # open file
-            open_hdf(self.findx[i]['fname_inp'], &self.hdf_fp, &self.sd_id)
-            # get first offset
-            off_ini  = self.findx[i]['ind'][0] if self.findx[i]['ind'][0] is not None else 0
-            # get max offset
-            off_size = get_maxrec() # number of records for this file
-            off_end  = self.findx[i]['ind'][1] if self.findx[i]['ind'][1] is not None else (off_size-1)
-            print " --> reading: %d,  %d/%d" % (off_ini, off_end, off_size-1)
-            # read file
-            for off in range(off_ini, off_end+1):
-                retval = read_test_func(&self.data, off)
-                var.append(deref(_ptr))
-
-        # close file
-        close_hdf(self.hdf_fp, self.sd_id)
         return var
 
     """
