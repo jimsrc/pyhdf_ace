@@ -46,7 +46,7 @@ cdef class mag_l2(object):
         for i in range(self.nf): 
             fname_inp  = fname_inps[i]
             #open_hdf(fname_inp, &self.hdf_fp[i], &self.sd_id[i])
-            self.findx[i] = {'fname_inp':fname_inp, 'ind':[None,None]}
+            self.findx[i] = {'fname_inp':fname_inp, 'ind':[None,None], 'size':None}
 
     def indexes_for_period(self, ini, end):
         """
@@ -60,7 +60,7 @@ cdef class mag_l2(object):
         # search flags (indexes "not found" by default)
         cdef bint NotFound_Ini=1
         cdef bint NotFound_End=1
-        cdef int i, retval, off
+        cdef int i, retval, off, off_size
 
         # check
         # TODO: test if ignoring this block, we gain performance? (the
@@ -72,32 +72,38 @@ cdef class mag_l2(object):
         else:
             close_hdf(self.hdf_fp, self.sd_id)
             raise SystemExit(' bad data!')
-    
+        off_ = 0 
         self.tsize = 0
         for i in range(self.nf):
             retval = 1 # read status flag
             off    = 0 # start at first record
             # open file
             open_hdf(self.findx[i]['fname_inp'], &self.hdf_fp, &self.sd_id)
+            off_size = get_maxrec() # number of records for this file
+            self.findx[i]['size'] = off_size
             # read file
-            while(retval!=-1):
+            while (retval!=-1) & NotFound_End:
                 retval = read_test_func(&self.data, off)
                 if NotFound_Ini & (self.data.ACEepoch>=ini):
                     self.findx[i]['ind'][0] = off
                     NotFound_Ini = 0 # say i found it!
 
-                if not(NotFound_Ini):
+                #TODO: shouldn't need the `NotFound_End` because 
+                #      it's already en the while statement! It gives
+                #      self.tsize!=len(var) if I remove it! WIERD.
+                if (~NotFound_Ini) & NotFound_End: 
                     self.tsize += 1
 
                 if NotFound_End & (self.data.ACEepoch>=end):
                     self.findx[i]['ind'][1] = off
                     NotFound_End = 0 # say i found it!
-                    #---
                     break # we finished!
 
                 off += 1
+
             # close file
             close_hdf(self.hdf_fp, self.sd_id)
+            
 
         # found nothing in these files
         if NotFound_Ini | NotFound_End:
@@ -124,6 +130,8 @@ cdef class mag_l2(object):
         var = []
         #--- iterate over files
         for i in range(self.nf):
+            if self.findx[i]['ind'][0] is None and self.findx[i]['ind'][1] is None:
+                continue # next file
             retval = 1 # read status flag
             # open file
             open_hdf(self.findx[i]['fname_inp'], &self.hdf_fp, &self.sd_id)
@@ -138,6 +146,8 @@ cdef class mag_l2(object):
                 retval = read_test_func(&self.data, off)
                 var.append(deref(_ptr))
 
+            # close file
+            close_hdf(self.hdf_fp, self.sd_id)
         return var
 
     def return_ACEepoch(self):
@@ -148,6 +158,9 @@ cdef class mag_l2(object):
         var = []
         #--- iterate over files
         for i in range(self.nf):
+            #--- is this file inside our period of interest?
+            if self.findx[i]['ind'][0] is None and self.findx[i]['ind'][1] is None:
+                continue # next file
             retval = 1 # read status flag
             # open file
             open_hdf(self.findx[i]['fname_inp'], &self.hdf_fp, &self.sd_id)
@@ -162,6 +175,8 @@ cdef class mag_l2(object):
                 retval = read_test_func(&self.data, off)
                 var.append(deref(_ptr))
 
+        # close file
+        close_hdf(self.hdf_fp, self.sd_id)
         return var
 
     """
