@@ -35,19 +35,19 @@ void close_hdf(int32 hdf_fp, int32 sd_id){
     close_rd_test_func();
 
     Vend(hdf_fp);			/* End Vdata attachment */
-    fprintf(stdout,"Vdata connection ended \n");
+    //fprintf(stdout,"Vdata connection ended \n");
 
     if (SDend(sd_id)==FAIL)	{
         /* End SDdata attachment */
         fprintf(stderr, "SDend: could not close hdf file\n");
         exit(-1);
     }
-    fprintf(stdout,"SD connection ended\n");
+    //fprintf(stdout,"SD connection ended\n");
 
     if (Hclose(hdf_fp)==FAIL){
         fprintf(stderr, "Hclose: could not close hdf file\n");
         exit(-1);
     }
-    fprintf(stderr,"file closed \n");
+    //fprintf(stderr,"file closed \n");
 }
 //EOF
