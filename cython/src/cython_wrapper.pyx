@@ -51,8 +51,11 @@ cdef class mag_l2(object):
         # initialize pointers to all files
         for i in range(self.nf): 
             fname_inp  = fname_inps[i]
-            #open_hdf(fname_inp, &self.hdf_fp[i], &self.sd_id[i])
-            self.findx[i] = {'fname_inp':fname_inp, 'ind':[None,None], 'size':None}
+            self.findx[i] = {
+                'fname_inp':fname_inp, 
+                'ind':[None,None], 
+                'size':None
+            }
 
     def indexes_for_period(self, ini, end):
         """
@@ -73,7 +76,10 @@ cdef class mag_l2(object):
         #       executable size IS different!)
         open_hdf(self.findx[0]['fname_inp'], &self.hdf_fp, &self.sd_id)
         if read_test_func(&self.data, 0)!=-1:
-            assert self.data.ACEepoch<ini, " bad data selection!"
+            assert self.data.ACEepoch<ini, \
+                " bad data selection!\n \
+                  data_ini: %r\n \
+                  ini     : %r" % (self.data.ACEepoch,ini)
             close_hdf(self.hdf_fp, self.sd_id)
         else:
             close_hdf(self.hdf_fp, self.sd_id)
@@ -191,81 +197,64 @@ cdef class mag_l2(object):
         return ndarray
 
 
-    """
-    property tsave:
-        def __get__(self):
-            cdef double *ptr
-            cdef np.ndarray ndarray
-            #n = self.outbs.xsave.size()
-            n = self.outbs.count          # nro of saved times
-            ptr = &(self.outbs.xsave[0])
-            arrw = ArrayWrapper()
-            arrw.set_data(n, <void*> ptr, survive=True)
-            ndarray = np.array(arrw, copy=False)
-            ndarray.base = <PyObject*> arrw
-            Py_INCREF(arrw)
-            return ndarray
-   
-    """
     def __dealloc__(self):
         if self.buff is not NULL:
             free(self.buff)
 
 
 
-cpdef int test_myhdf(const char *fname):
-    cdef:
-        int32 hdf_fp
-        int32 sd_id
-        int retval=1
-        int off=0       # initial offset
-        MAG_data_1sec data # C-struct of data
+#cpdef np.ndarray test_myhdf(const char *fname):
+cdef class simple(object):
+    cdef float64    *buff
+    
+    def __cinit__(self,):
+        self.buff = NULL
 
-    # point to file on disk
-    open_hdf(fname, &hdf_fp, &sd_id)
+    def get_data(self, const char* fname, vname):
+        cdef:
+            int32 hdf_fp
+            int32 sd_id
+            int retval=1
+            MAG_data_1sec data # C-struct of data
+            int off_size, off
+            
+        # point to file on disk
+        open_hdf(fname, &hdf_fp, &sd_id)
+        off_size = get_maxrec() # number of records for this file
 
-    # read data
-    while(retval!=-1):
-        retval = read_test_func(&data,off)
-        print "%d %d %d %f\n" %(data.year, data.fp_doy, data.hr, data.sec)
-        #printf("%d %d %d %f\n", data.year, data.hr, data.min, data.sec);
-        off += 1
+        #--- buffer to save data from disk
+        if self.buff is not NULL:
+            free(self.buff)
+        self.buff = <float64*> calloc(off_size, sizeof(float64))
 
-    print " ---> finished reading data!\n"
-    # close file
-    close_hdf(hdf_fp, sd_id)
-    return 0
+        # read data
+        for off in range(off_size):
+            retval = read_test_func(&data,off)
+            #print "%d %d %d %f\n" %(data.year, data.fp_doy, data.hr, data.sec)
+            if   vname=='Bmag'     : self.buff[off] = data.Bmag
+            elif vname=='Bgse_x'   : self.buff[off] = data.Bgse_x
+            elif vname=='Bgse_y'   : self.buff[off] = data.Bgse_y
+            elif vname=='Bgse_z'   : self.buff[off] = data.Bgse_z
+            elif vname=='ACEepoch' : self.buff[off] = data.ACEepoch
+            else: return -1
 
+        print " ---> finished reading data!\n"
+        # close file
+        close_hdf(hdf_fp, sd_id)
 
-#cdef void calc_Rlarmor(Doub Ek, Doub Bo, Doub *Rl):
-#cpdef double calc_Rlarmor(Doub Ek, Doub Bo):
-cpdef double calc_Rlarmor(Doub rigidity, Doub Bo):
-    """
-    input:
-    Ek      : [eV] kinetic energy
-    rigi..  : [V] rigidity
-    Bo      : [G] magnetic field in Gauss
-    output:
-    Rl  : [cm] larmor radii
-    """
-    cdef:
-        double q = (4.8032*1e-10) # [statC] carga PROTON
-        double mo = 1.6726e-24 # [gr] masa PROTON
-        double c = 3e10            # [cm/s] light speed
-        double AU_in_cm = 1.5e13     # [cm]
-        double E_reposo=938272013.0  # [eV] PROTON
-        double beta, gamma, omg, v
+        #--- build numpy-array wrapper
+        cdef np.ndarray ndarray
+        v_arr = ArrayWrapper()
+        v_arr.set_data(off_size, <void*>&self.buff[0], survive=True)
+        ndarray = np.array(v_arr, copy=False)
+        ndarray.base = <PyObject*> v_arr
+        Py_INCREF(v_arr)
 
-    #rigidity = sqrt(Ek*Ek + 2.*Ek*E_reposo);
-    #------------------------CALCULO DE GAMMA Y BETA
-    gamma = pow(pow(rigidity/E_reposo,2) + 1. , 0.5)
-    beta = pow(1. - 1/(gamma*gamma) , 0.5)
-    #------------------------------CALCULO CICLOTRON
-    omg = q * Bo / (gamma * mo * c)     # [s^-1]
-    #---------------------------CALCULO RADIO LARMOR
-    v   = beta * c              # [cm/s]
-    #Rl[0]  = (v / omg) /AU_in_cm  # [AU]
-    return (v / omg) # [cm]
+        # return numpy-array wrapper of `self.buff`
+        return ndarray
 
+    def __dealloc__(self):
+        if self.buff is not NULL:
+            free(self.buff)
 
 #EOF

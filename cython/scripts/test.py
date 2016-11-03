@@ -23,7 +23,6 @@ def fnm_gen(i):
 
 #ok = cw.test_myhdf(fnm)
 fnm_ls = [fnm_gen(i) for i in range(2494,2497)]
-#import pdb; pdb.set_trace()
 
 m = cw.mag_l2(fnm_ls)
 # seconds from 1/1/96 (ACE epoch)
@@ -40,7 +39,7 @@ ind = m.indexes_for_period(ini, end)
 for i in range(m.nf):
     print m.findx[i]['ind']
 
-t_ace = m.return_ACEepoch()
+t_ace = m.return_var('ACEepoch')
 var   = m.return_var('Bgse_x')
 print " var.size ", len(var)
 print " tsize ", m.tsize
